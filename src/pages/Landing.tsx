@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import AppPreview from '../components/AppPreview'
 import FadeIn from '../components/FadeIn'
+import DonateButton from '../components/DonateButton'
 import useUserCount from '../lib/useUserCount'
 
 const FEATURES = [
@@ -116,6 +117,9 @@ export default function Landing() {
           <span className="text-sm font-bold tracking-tight">En qué gasto?</span>
         </span>
         <nav className="flex items-center gap-2">
+          <span className="hidden sm:inline-block">
+            <DonateButton />
+          </span>
           <Link
             to="/login"
             className="rounded-xl px-4 py-2 text-sm font-medium text-white/70 transition hover:text-white"
@@ -248,6 +252,15 @@ export default function Landing() {
             Crear mi cuenta <ArrowRight className="h-4 w-4" />
           </Link>
         </FadeIn>
+      </section>
+
+      {/* Apoyar el proyecto */}
+      <section className="border-t border-bg-border/60 px-6 py-20">
+        <div className="mx-auto max-w-3xl">
+          <FadeIn>
+            <DonateButton variant="card" />
+          </FadeIn>
+        </div>
       </section>
 
       <footer className="border-t border-bg-border/60 px-6 py-10">

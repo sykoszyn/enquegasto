@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { CreditCard, Check } from 'lucide-react'
+import { CreditCard, Check, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import type { Card, CardPayment, CardPurchase, Category, Household } from '../types'
 import AppShell from '../components/AppShell'
@@ -170,6 +170,21 @@ export default function Cards() {
     load()
   }
 
+  const removeCard = async (card: Card) => {
+    const purchaseCount = purchases.filter((p) => p.card_id === card.id).length
+    const msg =
+      purchaseCount > 0
+        ? `Esta tarjeta tiene ${purchaseCount} compra(s) cargada(s). Si la borrás, se borran también esas compras y sus cuotas. ¿Confirmás?`
+        : '¿Borrar esta tarjeta?'
+    if (!confirm(msg)) return
+    const { error } = await supabase.from('cards').delete().eq('id', card.id)
+    if (error) {
+      alert(error.message)
+      return
+    }
+    load()
+  }
+
   const summary = useMemo(() => {
     return cards.map((card) => {
       const cardPurchases = purchases.filter((p) => p.card_id === card.id)
@@ -240,15 +255,25 @@ export default function Cards() {
                       Cierra el {card.closing_day} · vence el {card.due_day}
                     </p>
                   </div>
-                  <button
-                    onClick={() => togglePaid(card.id)}
-                    className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition ${
-                      paid ? 'bg-brand/15 text-brand' : 'bg-bg text-white/50 hover:text-white'
-                    }`}
-                  >
-                    <Check className="h-3.5 w-3.5" />
-                    {paid ? 'Pagado' : 'Marcar pagado'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => togglePaid(card.id)}
+                      className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+                        paid ? 'bg-brand/15 text-brand' : 'bg-bg text-white/50 hover:text-white'
+                      }`}
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      {paid ? 'Pagado' : 'Marcar pagado'}
+                    </button>
+                    <button
+                      onClick={() => removeCard(card)}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-bg text-white/30 transition hover:text-gasto"
+                      aria-label="Borrar tarjeta"
+                      title="Borrar tarjeta"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 <p className="tabular mt-3 font-mono text-xl font-bold text-gasto">

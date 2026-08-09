@@ -3,7 +3,7 @@ import { Heart, X } from 'lucide-react'
 
 const PRESETS = [1000, 2000, 5000]
 
-export default function DonateButton() {
+export default function DonateButton({ variant = 'nav' }: { variant?: 'nav' | 'card' }) {
   const [open, setOpen] = useState(false)
   const [amount, setAmount] = useState<number>(2000)
   const [custom, setCustom] = useState('')
@@ -40,12 +40,37 @@ export default function DonateButton() {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-xl bg-bg-raised px-3.5 py-2 text-sm font-medium text-white/70 transition hover:text-white"
-      >
-        <Heart className="h-4 w-4 text-gasto" /> Apoyar el proyecto
-      </button>
+      {variant === 'nav' ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-1.5 rounded-xl bg-bg-raised px-3.5 py-2 text-sm font-medium text-white/70 transition hover:text-white"
+        >
+          <Heart className="h-4 w-4 text-gasto" /> Apoyar el proyecto
+        </button>
+      ) : (
+        <button
+          onClick={() => setOpen(true)}
+          className="group relative w-full overflow-hidden rounded-3xl border border-bg-border bg-gradient-to-br from-bg-surface to-bg-raised p-8 text-left shadow-card transition hover:-translate-y-1 hover:border-white/10 sm:p-10"
+        >
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full glow-gasto blur-3xl transition-opacity group-hover:opacity-80"
+          />
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gasto/15">
+            <Heart className="h-6 w-6 text-gasto" />
+          </span>
+          <h3 className="mt-5 text-2xl font-extrabold text-white">
+            Bancá el proyecto
+          </h3>
+          <p className="mt-2 max-w-md text-sm leading-relaxed text-white/55">
+            En qué gasto? es gratis, sin publicidad y va a seguir siéndolo.
+            Si te sirve, una donación única ayuda a mantenerlo funcionando.
+          </p>
+          <span className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-bold text-bg shadow-glow transition group-hover:brightness-110">
+            Donar con Mercado Pago
+          </span>
+        </button>
+      )}
 
       {open && (
         <div
