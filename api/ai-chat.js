@@ -71,8 +71,9 @@ export default async function handler(req, res) {
   }
 
   try {
+    const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash'
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -89,6 +90,7 @@ export default async function handler(req, res) {
 
     if (!geminiRes.ok) {
       const errText = await geminiRes.text()
+      console.error('Gemini API error:', geminiRes.status, errText)
       res.status(502).json({ error: 'Error de la API de Gemini', detail: errText })
       return
     }
