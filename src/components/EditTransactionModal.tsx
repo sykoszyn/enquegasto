@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { hapticSuccess } from '../lib/haptics'
 import type { Account, Category, Kind, PaymentMethod, Transaction } from '../types'
 import { PAYMENT_METHOD_LABELS } from '../types'
 
-const PAYMENT_METHODS: PaymentMethod[] = ['transferencia_qr', 'efectivo', 'debito', 'credito']
+const PAYMENT_METHODS: PaymentMethod[] = ['transferencia_qr', 'efectivo', 'debito', 'credito', 'cripto']
 
 interface Props {
   transaction: Transaction
@@ -59,6 +60,7 @@ export default function EditTransactionModal({
       setError(error.message)
       return
     }
+    hapticSuccess()
     onSaved()
   }
 

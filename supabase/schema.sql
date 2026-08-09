@@ -531,8 +531,13 @@ create policy "savings_contributions_delete_own" on savings_contributions
   for delete using (auth.uid() = user_id);
 
 -- ============================================================================
--- MIGRACIÓN 3: Presupuestos por categoría, gastos recurrentes
--- ============================================================================
+-- MIGRACIÓN 4: medio de pago cripto ---------------------------------------
+alter table transactions
+  drop constraint if exists transactions_payment_method_check;
+
+alter table transactions
+  add constraint transactions_payment_method_check
+  check (payment_method in ('efectivo', 'debito', 'credito', 'transferencia_qr', 'cripto'));
 
 create table if not exists category_budgets (
   id uuid primary key default gen_random_uuid(),

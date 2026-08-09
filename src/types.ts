@@ -1,12 +1,13 @@
 export type Kind = 'gasto' | 'ingreso'
 
-export type PaymentMethod = 'efectivo' | 'debito' | 'credito' | 'transferencia_qr'
+export type PaymentMethod = 'efectivo' | 'debito' | 'credito' | 'transferencia_qr' | 'cripto'
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   efectivo: 'Efectivo',
   debito: 'Débito',
   credito: 'Crédito',
   transferencia_qr: 'Transferencia/QR',
+  cripto: 'Cripto/USDT',
 }
 
 export interface Category {

@@ -16,8 +16,10 @@ import HouseholdManager from '../components/HouseholdManager'
 import BudgetManager from '../components/BudgetManager'
 import RecurringManager from '../components/RecurringManager'
 import DonateButton from '../components/DonateButton'
+import { useDisplayCurrency } from '../context/DisplayCurrencyContext'
 
 export default function Settings() {
+  const { rates, source, setSource, updatedAt, loading: ratesLoading, refresh } = useDisplayCurrency()
   const [categories, setCategories] = useState<Category[]>([])
   const [accounts, setAccounts] = useState<Account[]>([])
   const [households, setHouseholds] = useState<Household[]>([])
@@ -99,6 +101,70 @@ export default function Settings() {
                 categories={categories}
                 onChange={load}
               />
+            </div>
+            <div className="rounded-2xl border border-bg-border bg-bg-surface p-5 shadow-card">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-white/70">Cotización del dólar</p>
+                <button
+                  onClick={refresh}
+                  disabled={ratesLoading}
+                  className="text-xs text-white/40 hover:text-white disabled:opacity-40"
+                >
+                  {ratesLoading ? 'Actualizando…' : 'Actualizar'}
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-white/40">
+                En vivo, vía{' '}
+                <a
+                  href="https://dolarapi.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline hover:text-white"
+                >
+                  dolarapi.com
+                </a>
+                . Elegí cuál usar para el selector $ → US$ del header.
+              </p>
+
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                {(['oficial', 'cripto'] as const).map((s) => {
+                  const r = rates[s]
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => setSource(s)}
+                      className={`rounded-xl border p-3 text-left transition ${
+                        source === s
+                          ? 'border-brand bg-brand/10'
+                          : 'border-bg-border bg-bg hover:border-white/20'
+                      }`}
+                    >
+                      <p className="text-xs font-bold uppercase text-white/60">
+                        Dólar {s}
+                      </p>
+                      {r ? (
+                        <>
+                          <p className="mt-1 font-mono text-lg font-bold text-white">
+                            ${r.venta.toLocaleString('es-AR')}
+                          </p>
+                          <p className="text-[10px] text-white/30">
+                            Compra ${r.compra.toLocaleString('es-AR')}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="mt-1 text-xs text-white/30">
+                          {ratesLoading ? 'Cargando…' : 'No disponible'}
+                        </p>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+              {updatedAt && (
+                <p className="mt-3 text-[10px] text-white/30">
+                  Actualizado: {new Date(updatedAt).toLocaleString('es-AR')}
+                </p>
+              )}
             </div>
           </div>
         )}

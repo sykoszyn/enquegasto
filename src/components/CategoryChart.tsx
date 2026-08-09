@@ -1,5 +1,7 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import { PieChart as PieChartIcon } from 'lucide-react'
 import type { Transaction } from '../types'
+import EmptyState from './EmptyState'
 
 interface Props {
   transactions: Transaction[]
@@ -28,9 +30,11 @@ export default function CategoryChart({ transactions, currency }: Props) {
 
   if (data.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-bg-border p-10 text-center text-sm text-white/40">
-        Anotá algún gasto para ver en qué se te va la plata.
-      </div>
+      <EmptyState
+        icon={PieChartIcon}
+        title="Nada para graficar todavía"
+        body="Anotá algún gasto para ver en qué se te va la plata."
+      />
     )
   }
 

@@ -1,6 +1,8 @@
 import type { Transaction } from '../types'
 import { PAYMENT_METHOD_LABELS } from '../types'
 import Amount from './Amount'
+import EmptyState from './EmptyState'
+import { Receipt } from 'lucide-react'
 
 interface Props {
   transactions: Transaction[]
@@ -12,9 +14,11 @@ interface Props {
 export default function TransactionList({ transactions, currency, onDelete, onEdit }: Props) {
   if (transactions.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-bg-border p-10 text-center text-sm text-white/40">
-        Todavía no anotaste nada.
-      </div>
+      <EmptyState
+        icon={Receipt}
+        title="Todavía no anotaste nada"
+        body="Los movimientos que cargues van a aparecer acá, ordenados por fecha."
+      />
     )
   }
 
@@ -34,10 +38,16 @@ export default function TransactionList({ transactions, currency, onDelete, onEd
                 className="h-8 w-8 shrink-0 rounded-xl"
                 style={{ background: `${t.category?.color ?? '#8B93A7'}22` }}
               >
-                <span
-                  className="mx-auto mt-[11px] block h-2 w-2 rounded-full"
-                  style={{ background: t.category?.color ?? '#8B93A7' }}
-                />
+                {t.category?.icon ? (
+                  <span className="flex h-full w-full items-center justify-center text-sm leading-none">
+                    {t.category.icon}
+                  </span>
+                ) : (
+                  <span
+                    className="mx-auto mt-[11px] block h-2 w-2 rounded-full"
+                    style={{ background: t.category?.color ?? '#8B93A7' }}
+                  />
+                )}
               </span>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-white">

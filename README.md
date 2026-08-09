@@ -132,6 +132,25 @@ Botón "Apoyar el proyecto" en Ajustes, con montos prefijados o personalizados.
 - **Rendimiento**: code splitting por página, skeleton loaders, caché local
   para que el Dashboard pinte al instante mientras confirma datos frescos.
 
+## Novedades de esta tanda: cripto, atajos, vibración, íconos, filtros
+
+- **Medio de pago cripto/USDT** sumado a efectivo/débito/crédito/transferencia.
+- **Atajo de teclado**: tocar **N** o **+** en cualquier parte (desktop) abre
+  la carga rápida. Se ignora si estás escribiendo en un campo de texto.
+- **Vibración háptica**: al confirmar un gasto, el celular vibra corto (si el
+  navegador lo soporta).
+- **Íconos por categoría**: elegís un emoji al crear una categoría, se ve en
+  la lista y en cada movimiento. Las categorías por defecto ya vienen con uno.
+- **Filtro de fechas personalizado**: en el Dashboard, arriba de la lista de
+  movimientos, elegís "del / al" para ver cualquier rango (ej. del 20 al 20).
+- **Aviso de inactividad**: banner si pasaron 2+ días sin cargar nada.
+- **Selector $ / US$ en el header**: ahora con **cotización en vivo real**
+  desde [dolarapi.com](https://dolarapi.com) (dólar oficial y dólar cripto,
+  a elección tuya en Ajustes). Se cachea 10 minutos en el navegador para no
+  golpear la API de más, y podés forzar una actualización manual.
+- **Empty states con ícono** en vez de solo texto, en movimientos, gráfico,
+  tarjetas y ahorros.
+
 ## Qué falta / próximos pasos posibles
 
 - División de gastos compartidos ("quién le debe a quién").

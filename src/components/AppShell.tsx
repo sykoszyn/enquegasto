@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { Home, CreditCard, PiggyBank, Settings as SettingsIcon, LogOut, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { usePrivacy } from '../context/PrivacyContext'
+import { useDisplayCurrency } from '../context/DisplayCurrencyContext'
 import QuickAddFab from './QuickAddFab'
 
 const TABS = [
@@ -15,6 +16,7 @@ const TABS = [
 export default function AppShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
   const { hidden, toggle } = usePrivacy()
+  const { mode, rate, source, toggle: toggleCurrency } = useDisplayCurrency()
 
   const signOut = async () => {
     await supabase.auth.signOut()
@@ -52,6 +54,20 @@ export default function AppShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="flex items-center gap-1">
+            <button
+              onClick={toggleCurrency}
+              title={
+                rate
+                  ? mode === 'native'
+                    ? `Ver en USD (dólar ${source}: $${rate})`
+                    : 'Ver en moneda original'
+                  : 'Cargando cotización…'
+              }
+              disabled={!rate}
+              className="rounded-xl px-2.5 py-2 text-xs font-bold text-muted transition hover:text-white disabled:opacity-30"
+            >
+              {mode === 'native' ? '$ → US$' : 'US$ → $'}
+            </button>
             <button
               onClick={toggle}
               title={hidden ? 'Mostrar cifras' : 'Ocultar cifras'}

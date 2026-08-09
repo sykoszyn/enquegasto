@@ -10,6 +10,7 @@ import MonthCompareChart from '../components/MonthCompareChart'
 import EditTransactionModal from '../components/EditTransactionModal'
 import AiChat from '../components/AiChat'
 import Amount from '../components/Amount'
+import { useDisplayCurrency } from '../context/DisplayCurrencyContext'
 import { downloadTransactionsCsv } from '../lib/csv'
 import { cardDueForMonth, monthKey, monthStart } from '../lib/cardMath'
 import { getCached, setCached } from '../lib/cache'
@@ -26,13 +27,13 @@ interface DashboardCache {
 const cached = getCached<DashboardCache>('dashboard')
 
 const DEFAULT_CATEGORIES: Omit<Category, 'id' | 'user_id' | 'household_id'>[] = [
-  { name: 'Comida', kind: 'gasto', color: '#FB5A6B', icon: null },
-  { name: 'Transporte', kind: 'gasto', color: '#F5A623', icon: null },
-  { name: 'Casa', kind: 'gasto', color: '#8B7CF6', icon: null },
-  { name: 'Salidas', kind: 'gasto', color: '#FB5A6B', icon: null },
-  { name: 'Salud', kind: 'gasto', color: '#F5A623', icon: null },
-  { name: 'Sueldo', kind: 'ingreso', color: '#3DDC97', icon: null },
-  { name: 'Otros ingresos', kind: 'ingreso', color: '#3DDC97', icon: null },
+  { name: 'Comida', kind: 'gasto', color: '#FB5A6B', icon: '🛒' },
+  { name: 'Transporte', kind: 'gasto', color: '#F5A623', icon: '🚗' },
+  { name: 'Casa', kind: 'gasto', color: '#8B7CF6', icon: '🏠' },
+  { name: 'Salidas', kind: 'gasto', color: '#FB5A6B', icon: '🎉' },
+  { name: 'Salud', kind: 'gasto', color: '#F5A623', icon: '💊' },
+  { name: 'Sueldo', kind: 'ingreso', color: '#3DDC97', icon: '💰' },
+  { name: 'Otros ingresos', kind: 'ingreso', color: '#3DDC97', icon: '💵' },
 ]
 
 
@@ -45,6 +46,8 @@ export default function Dashboard() {
   const [cardPayments, setCardPayments] = useState<CardPayment[]>(cached?.cardPayments ?? [])
   const [loading, setLoading] = useState(!cached)
   const [editing, setEditing] = useState<Transaction | null>(null)
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   const ensureDefaults = useCallback(async (userId: string) => {
     const { data: existingAccounts } = await supabase
@@ -120,7 +123,31 @@ export default function Dashboard() {
   }
 
   const primaryCurrency = accounts[0]?.currency ?? 'ARS'
+  const { mode: currencyMode, rate: usdRate, source: dolarSource } = useDisplayCurrency()
+  const showUsd = currencyMode === 'usd' && usdRate && primaryCurrency === 'ARS'
+  const heroCurrency = showUsd ? 'USD' : primaryCurrency
+  const conv = (n: number) => (showUsd ? n / (usdRate as number) : n)
   const thisMonth = monthStart(new Date())
+
+  const filteredTransactions = useMemo(() => {
+    if (!dateFrom && !dateTo) return transactions
+    return transactions.filter((t) => {
+      const d = t.occurred_at.slice(0, 10)
+      if (dateFrom && d < dateFrom) return false
+      if (dateTo && d > dateTo) return false
+      return true
+    })
+  }, [transactions, dateFrom, dateTo])
+
+  const daysSinceLastActivity = useMemo(() => {
+    if (transactions.length === 0) return null
+    const last = transactions.reduce(
+      (max, t) => (t.occurred_at > max ? t.occurred_at : max),
+      transactions[0].occurred_at
+    )
+    const diffMs = Date.now() - new Date(last).getTime()
+    return Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  }, [transactions])
 
   const home = useMemo(() => {
     const now = new Date()
@@ -208,6 +235,14 @@ export default function Dashboard() {
   return (
     <AppShell>
       <main className="mx-auto max-w-5xl px-6 py-8">
+        {daysSinceLastActivity !== null && daysSinceLastActivity >= 2 && (
+          <div className="mb-4 flex items-center gap-2 rounded-2xl border border-ambar/20 bg-ambar/10 px-4 py-3 text-sm text-ambar">
+            <span>⏰</span>
+            <span>
+              Hace {daysSinceLastActivity} días que no anotás nada. ¿Te olvidaste de algo?
+            </span>
+          </div>
+        )}
         {/* Hero: balance del mes */}
         <div className="relative overflow-hidden rounded-3xl border border-bg-border bg-gradient-to-br from-bg-surface to-bg-raised p-6 shadow-card sm:p-8">
           <div
@@ -218,9 +253,16 @@ export default function Dashboard() {
             {new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })}
           </p>
           <p className="tabular mt-1 font-mono text-4xl font-bold text-white sm:text-5xl">
-            <Amount value={home.teQueda} currency={primaryCurrency} />
+            <Amount value={conv(home.teQueda)} currency={heroCurrency} />
           </p>
-          <p className="mt-1 text-sm text-white/40">te queda este mes</p>
+          <p className="mt-1 text-sm text-white/40">
+            te queda este mes
+            {showUsd && (
+              <span className="ml-1 text-white/25">
+                · dólar {dolarSource} (${usdRate?.toLocaleString('es-AR')})
+              </span>
+            )}
+          </p>
 
           <div className="mt-6 grid grid-cols-3 gap-3">
             <div className="rounded-2xl bg-bg/40 p-4">
@@ -228,7 +270,7 @@ export default function Dashboard() {
                 <ArrowDownRight className="h-3.5 w-3.5" /> Pagado
               </p>
               <p className="tabular mt-1 font-mono text-base font-bold text-white sm:text-lg">
-                <Amount value={home.pagado} currency={primaryCurrency} />
+                <Amount value={conv(home.pagado)} currency={heroCurrency} />
               </p>
               {home.change !== null && (
                 <p
@@ -250,7 +292,7 @@ export default function Dashboard() {
                 <ArrowUpRight className="h-3.5 w-3.5" /> Ingresos
               </p>
               <p className="tabular mt-1 font-mono text-base font-bold text-white sm:text-lg">
-                <Amount value={home.ingresos} currency={primaryCurrency} />
+                <Amount value={conv(home.ingresos)} currency={heroCurrency} />
               </p>
             </div>
             <div className="rounded-2xl bg-bg/40 p-4">
@@ -258,7 +300,7 @@ export default function Dashboard() {
                 <Wallet className="h-3.5 w-3.5" /> Por pagar
               </p>
               <p className="tabular mt-1 font-mono text-base font-bold text-white sm:text-lg">
-                <Amount value={home.pendiente} currency={primaryCurrency} />
+                <Amount value={conv(home.pendiente)} currency={heroCurrency} />
               </p>
             </div>
           </div>
@@ -267,7 +309,7 @@ export default function Dashboard() {
             <div className="rounded-2xl bg-bg/40 p-4">
               <p className="text-[11px] text-white/40">Promedio diario</p>
               <p className="tabular mt-1 font-mono text-sm font-bold text-white">
-                <Amount value={home.promedioDiario} currency={primaryCurrency} />
+                <Amount value={conv(home.promedioDiario)} currency={heroCurrency} />
               </p>
             </div>
             <div className="rounded-2xl bg-bg/40 p-4">
@@ -311,12 +353,41 @@ export default function Dashboard() {
               currency={primaryCurrency}
             />
           </div>
-          <TransactionList
-            transactions={transactions}
-            currency={primaryCurrency}
-            onDelete={onDelete}
-            onEdit={setEditing}
-          />
+          <div>
+            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-2xl border border-bg-border bg-bg-surface p-3">
+              <span className="text-xs text-white/40">Ver del</span>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="rounded-lg border border-bg-border bg-bg px-2 py-1.5 text-xs text-white outline-none focus:border-brand"
+              />
+              <span className="text-xs text-white/40">al</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="rounded-lg border border-bg-border bg-bg px-2 py-1.5 text-xs text-white outline-none focus:border-brand"
+              />
+              {(dateFrom || dateTo) && (
+                <button
+                  onClick={() => {
+                    setDateFrom('')
+                    setDateTo('')
+                  }}
+                  className="ml-auto text-xs text-white/40 hover:text-gasto"
+                >
+                  Limpiar
+                </button>
+              )}
+            </div>
+            <TransactionList
+              transactions={filteredTransactions}
+              currency={primaryCurrency}
+              onDelete={onDelete}
+              onEdit={setEditing}
+            />
+          </div>
         </div>
       </main>
 

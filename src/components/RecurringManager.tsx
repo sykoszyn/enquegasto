@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Repeat, Check } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
+import { hapticSuccess } from '../lib/haptics'
 import type { Account, Category, Kind, RecurringExpense, RecurringLog } from '../types'
 import Amount from './Amount'
 import { monthKey, monthStart } from '../lib/cardMath'
@@ -97,6 +98,7 @@ export default function RecurringManager({ recurring, logs, accounts, categories
       transaction_id: tx?.id,
       logged_by: user?.id,
     })
+    hapticSuccess()
     onChange()
   }
 

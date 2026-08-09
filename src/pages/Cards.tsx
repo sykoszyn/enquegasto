@@ -13,6 +13,7 @@ import {
   monthStart,
 } from '../lib/cardMath'
 import CardPurchaseForm from '../components/CardPurchaseForm'
+import EmptyState from '../components/EmptyState'
 
 const fmt = (n: number, currency: string) =>
   new Intl.NumberFormat('es-AR', {
@@ -232,9 +233,11 @@ export default function Cards() {
 
           <div className="space-y-4">
             {summary.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-bg-border p-10 text-center text-sm text-white/40">
-                Todavía no agregaste ninguna tarjeta.
-              </div>
+              <EmptyState
+                icon={CreditCard}
+                title="Todavía no agregaste ninguna tarjeta"
+                body="Sumá tu primera tarjeta del lado izquierdo para empezar a controlar las cuotas."
+              />
             )}
             {summary.map(({ card, due, paid, activePurchases }) => (
               <div

@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
+import { hapticSuccess } from '../lib/haptics'
 import type { Account, Category, Kind, PaymentMethod } from '../types'
 import { PAYMENT_METHOD_LABELS } from '../types'
 
@@ -12,7 +13,7 @@ interface Props {
   onCreated: () => void
 }
 
-const PAYMENT_METHODS: PaymentMethod[] = ['transferencia_qr', 'efectivo', 'debito', 'credito']
+const PAYMENT_METHODS: PaymentMethod[] = ['transferencia_qr', 'efectivo', 'debito', 'credito', 'cripto']
 
 export default function TransactionForm({ accounts, categories, onCreated }: Props) {
   const [kind, setKind] = useState<Kind>('gasto')
@@ -61,6 +62,7 @@ export default function TransactionForm({ accounts, categories, onCreated }: Pro
     setAmount('')
     setDescription('')
     setPaymentMethod('transferencia_qr')
+    hapticSuccess()
     onCreated()
   }
 
@@ -147,7 +149,7 @@ export default function TransactionForm({ accounts, categories, onCreated }: Pro
 
       <div className="mt-3">
         <label className="text-xs text-white/40">Medio de pago</label>
-        <div className="mt-1.5 grid grid-cols-4 gap-1.5">
+        <div className="mt-1.5 grid grid-cols-5 gap-1.5">
           {PAYMENT_METHODS.map((m) => (
             <button
               key={m}
@@ -166,7 +168,9 @@ export default function TransactionForm({ accounts, categories, onCreated }: Pro
                 ? 'Efvo.'
                 : m === 'debito'
                 ? 'Déb.'
-                : 'Créd.'}
+                : m === 'credito'
+                ? 'Créd.'
+                : 'Cripto'}
             </button>
           ))}
         </div>

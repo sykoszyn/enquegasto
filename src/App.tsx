@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import { AuthProvider } from './context/AuthContext'
 import { PrivacyProvider } from './context/PrivacyContext'
+import { DisplayCurrencyProvider } from './context/DisplayCurrencyContext'
 import AuthGuard from './components/AuthGuard'
 import { DashboardSkeleton, CardsSkeleton } from './components/Skeleton'
 
@@ -18,6 +19,7 @@ export default function App() {
   return (
     <AuthProvider>
       <PrivacyProvider>
+        <DisplayCurrencyProvider>
         <BrowserRouter>
           <Routes>
             <Route
@@ -86,6 +88,7 @@ export default function App() {
             />
           </Routes>
         </BrowserRouter>
+        </DisplayCurrencyProvider>
       </PrivacyProvider>
     </AuthProvider>
   )

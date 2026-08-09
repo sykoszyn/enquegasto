@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Plus, X } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import type { Account, Category, Kind } from '../types'
+import { hapticSuccess } from '../lib/haptics'
 
 export default function QuickAddFab() {
   const [open, setOpen] = useState(false)
@@ -13,6 +14,24 @@ export default function QuickAddFab() {
   const [categoryId, setCategoryId] = useState('')
   const [accountId, setAccountId] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // Atajo global: tocar "n" o "+" en cualquier parte de la app abre la carga
+  // rápida (solo en desktop; se ignora si el foco está en un input/textarea
+  // para no interferir con lo que el usuario esté escribiendo).
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      const isTyping =
+        target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
+      if (isTyping || e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key === 'n' || e.key === 'N' || e.key === '+') {
+        e.preventDefault()
+        setOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -49,6 +68,7 @@ export default function QuickAddFab() {
     setSaving(false)
     setAmount('')
     setOpen(false)
+    hapticSuccess()
     // refresca la página actual para que el nuevo movimiento se vea al toque
     window.location.reload()
   }
@@ -58,7 +78,8 @@ export default function QuickAddFab() {
       <button
         onClick={() => setOpen(true)}
         className="fixed bottom-20 left-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gasto text-white shadow-glow transition hover:-translate-y-0.5 hover:brightness-110 sm:bottom-5"
-        aria-label="Cargar gasto rápido"
+        aria-label="Cargar gasto rápido (atajo: N)"
+        title="Cargar gasto rápido — atajo: N"
       >
         <Plus className="h-6 w-6" />
       </button>

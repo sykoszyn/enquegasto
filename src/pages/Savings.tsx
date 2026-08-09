@@ -4,6 +4,7 @@ import { PiggyBank, Plus } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import type { Household, SavingsContribution, SavingsGoal } from '../types'
 import AppShell from '../components/AppShell'
+import EmptyState from '../components/EmptyState'
 
 const fmt = (n: number, currency: string) =>
   new Intl.NumberFormat('es-AR', {
@@ -255,8 +256,12 @@ export default function Savings() {
           <NewGoalForm households={households} onCreated={load} />
           <div className="grid gap-4 sm:grid-cols-2">
             {goals.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-bg-border p-10 text-center text-sm text-white/40 sm:col-span-2">
-                Todavía no tenés ninguna meta de ahorro.
+              <div className="sm:col-span-2">
+                <EmptyState
+                  icon={PiggyBank}
+                  title="Todavía no tenés ninguna meta"
+                  body="Creá tu primera meta del lado izquierdo — vacaciones, un fondo de emergencia, lo que sea."
+                />
               </div>
             )}
             {goals.map((g) => (

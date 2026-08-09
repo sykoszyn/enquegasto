@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 import type { Category, Kind } from '../types'
 
 const SWATCHES = ['#FB5A6B', '#F5A623', '#3DDC97', '#8B7CF6', '#4C9AFF', '#F472B6', '#8B93A7']
+const EMOJIS = ['🛒', '🚗', '🏠', '🎉', '💊', '💰', '🎬', '☕', '👕', '✈️', '📱', '🐾', '📚', '🎮', '💡']
 
 interface Props {
   categories: Category[]
@@ -14,6 +15,7 @@ export default function CategoryManager({ categories, onChange }: Props) {
   const [name, setName] = useState('')
   const [kind, setKind] = useState<Kind>('gasto')
   const [color, setColor] = useState(SWATCHES[0])
+  const [icon, setIcon] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -27,13 +29,14 @@ export default function CategoryManager({ categories, onChange }: Props) {
     } = await supabase.auth.getUser()
     const { error } = await supabase
       .from('categories')
-      .insert({ user_id: user?.id, name: name.trim(), kind, color })
+      .insert({ user_id: user?.id, name: name.trim(), kind, color, icon })
     setSaving(false)
     if (error) {
       setError(error.message)
       return
     }
     setName('')
+    setIcon(null)
     onChange()
   }
 
@@ -81,6 +84,20 @@ export default function CategoryManager({ categories, onChange }: Props) {
           placeholder="Nombre de la categoría"
           className="w-full rounded-xl border border-bg-border bg-bg px-3 py-2.5 text-sm text-white outline-none focus:border-brand"
         />
+        <div className="flex flex-wrap gap-1.5">
+          {EMOJIS.map((e) => (
+            <button
+              key={e}
+              type="button"
+              onClick={() => setIcon(icon === e ? null : e)}
+              className={`flex h-8 w-8 items-center justify-center rounded-lg text-base transition ${
+                icon === e ? 'bg-brand/20 ring-1 ring-brand' : 'bg-bg hover:bg-bg-raised'
+              }`}
+            >
+              {e}
+            </button>
+          ))}
+        </div>
         <div className="flex items-center gap-2">
           {SWATCHES.map((s) => (
             <button
@@ -122,10 +139,14 @@ export default function CategoryManager({ categories, onChange }: Props) {
                   className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-bg"
                 >
                   <span className="flex items-center gap-2 text-sm text-white/80">
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ background: c.color }}
-                    />
+                    {c.icon ? (
+                      <span className="text-base leading-none">{c.icon}</span>
+                    ) : (
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{ background: c.color }}
+                      />
+                    )}
                     {c.name}
                   </span>
                   <button
