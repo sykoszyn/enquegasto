@@ -1,7 +1,9 @@
 import { Link, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
-import { Home, CreditCard, PiggyBank, Settings as SettingsIcon, LogOut } from 'lucide-react'
+import { Home, CreditCard, PiggyBank, Settings as SettingsIcon, LogOut, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
+import { usePrivacy } from '../context/PrivacyContext'
+import QuickAddFab from './QuickAddFab'
 
 const TABS = [
   { to: '/app', label: 'Resumen', icon: Home },
@@ -12,6 +14,7 @@ const TABS = [
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
+  const { hidden, toggle } = usePrivacy()
 
   const signOut = async () => {
     await supabase.auth.signOut()
@@ -38,9 +41,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                   key={t.to}
                   to={t.to}
                   className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition ${
-                    active
-                      ? 'bg-bg-raised text-white'
-                      : 'text-muted hover:text-white'
+                    active ? 'bg-bg-raised text-white' : 'text-muted hover:text-white'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -50,19 +51,29 @@ export default function AppShell({ children }: { children: ReactNode }) {
             })}
           </nav>
 
-          <button
-            onClick={signOut}
-            className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-muted transition hover:text-gasto"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Salir</span>
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={toggle}
+              title={hidden ? 'Mostrar cifras' : 'Ocultar cifras'}
+              className="flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-sm font-medium text-muted transition hover:text-white"
+            >
+              {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+            <button
+              onClick={signOut}
+              className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-muted transition hover:text-gasto"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Salir</span>
+            </button>
+          </div>
         </div>
       </header>
 
       <div className="pb-24 sm:pb-8">{children}</div>
 
-      {/* mobile bottom tab bar */}
+      <QuickAddFab />
+
       <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-bg-border/60 bg-bg/90 backdrop-blur-lg sm:hidden">
         <div className="mx-auto flex max-w-5xl items-center justify-around px-2 py-2">
           {TABS.map((t) => {

@@ -1,5 +1,6 @@
 import type { Transaction } from '../types'
 import { PAYMENT_METHOD_LABELS } from '../types'
+import Amount from './Amount'
 
 interface Props {
   transactions: Transaction[]
@@ -7,13 +8,6 @@ interface Props {
   onDelete: (id: string) => void
   onEdit: (t: Transaction) => void
 }
-
-const fmt = (n: number, currency: string) =>
-  new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(n)
 
 export default function TransactionList({ transactions, currency, onDelete, onEdit }: Props) {
   if (transactions.length === 0) {
@@ -63,7 +57,7 @@ export default function TransactionList({ transactions, currency, onDelete, onEd
                 }`}
               >
                 {t.kind === 'gasto' ? '-' : '+'}
-                {fmt(t.amount, t.account?.currency ?? currency)}
+                <Amount value={t.amount} currency={t.account?.currency ?? currency} />
               </span>
               <span className="flex gap-1 opacity-0 transition group-hover:opacity-100">
                 <button

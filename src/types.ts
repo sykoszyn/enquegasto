@@ -110,3 +110,36 @@ export interface SavingsContribution {
   occurred_at: string
   note: string | null
 }
+
+export interface CategoryBudget {
+  id: string
+  user_id: string
+  category_id: string
+  monthly_limit: number
+  created_at: string
+  category?: Category | null
+}
+
+export interface RecurringExpense {
+  id: string
+  user_id: string
+  household_id: string | null
+  account_id: string
+  category_id: string | null
+  name: string
+  kind: Kind
+  amount: number
+  day_of_month: number
+  active: boolean
+  created_at: string
+  category?: Category | null
+}
+
+export interface RecurringLog {
+  id: string
+  recurring_id: string
+  month: string
+  transaction_id: string | null
+  logged_by: string
+  logged_at: string
+}

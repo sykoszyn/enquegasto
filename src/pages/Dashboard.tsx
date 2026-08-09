@@ -6,10 +6,24 @@ import AppShell from '../components/AppShell'
 import TransactionForm from '../components/TransactionForm'
 import TransactionList from '../components/TransactionList'
 import CategoryChart from '../components/CategoryChart'
+import MonthCompareChart from '../components/MonthCompareChart'
 import EditTransactionModal from '../components/EditTransactionModal'
 import AiChat from '../components/AiChat'
+import Amount from '../components/Amount'
 import { downloadTransactionsCsv } from '../lib/csv'
 import { cardDueForMonth, monthKey, monthStart } from '../lib/cardMath'
+import { getCached, setCached } from '../lib/cache'
+
+interface DashboardCache {
+  accounts: Account[]
+  categories: Category[]
+  transactions: Transaction[]
+  cards: Card[]
+  cardPurchases: CardPurchase[]
+  cardPayments: CardPayment[]
+}
+
+const cached = getCached<DashboardCache>('dashboard')
 
 const DEFAULT_CATEGORIES: Omit<Category, 'id' | 'user_id' | 'household_id'>[] = [
   { name: 'Comida', kind: 'gasto', color: '#FB5A6B', icon: null },
@@ -21,21 +35,15 @@ const DEFAULT_CATEGORIES: Omit<Category, 'id' | 'user_id' | 'household_id'>[] = 
   { name: 'Otros ingresos', kind: 'ingreso', color: '#3DDC97', icon: null },
 ]
 
-const fmt = (n: number, currency: string) =>
-  new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(n)
 
 export default function Dashboard() {
-  const [accounts, setAccounts] = useState<Account[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [cards, setCards] = useState<Card[]>([])
-  const [cardPurchases, setCardPurchases] = useState<CardPurchase[]>([])
-  const [cardPayments, setCardPayments] = useState<CardPayment[]>([])
-  const [loading, setLoading] = useState(true)
+  const [accounts, setAccounts] = useState<Account[]>(cached?.accounts ?? [])
+  const [categories, setCategories] = useState<Category[]>(cached?.categories ?? [])
+  const [transactions, setTransactions] = useState<Transaction[]>(cached?.transactions ?? [])
+  const [cards, setCards] = useState<Card[]>(cached?.cards ?? [])
+  const [cardPurchases, setCardPurchases] = useState<CardPurchase[]>(cached?.cardPurchases ?? [])
+  const [cardPayments, setCardPayments] = useState<CardPayment[]>(cached?.cardPayments ?? [])
+  const [loading, setLoading] = useState(!cached)
   const [editing, setEditing] = useState<Transaction | null>(null)
 
   const ensureDefaults = useCallback(async (userId: string) => {
@@ -90,6 +98,15 @@ export default function Dashboard() {
     setCardPurchases((cp as unknown as CardPurchase[]) ?? [])
     setCardPayments(pay ?? [])
     setLoading(false)
+
+    setCached('dashboard', {
+      accounts: acc ?? [],
+      categories: cat ?? [],
+      transactions: (tx as unknown as Transaction[]) ?? [],
+      cards: c ?? [],
+      cardPurchases: (cp as unknown as CardPurchase[]) ?? [],
+      cardPayments: pay ?? [],
+    })
   }, [ensureDefaults])
 
   useEffect(() => {
@@ -124,6 +141,7 @@ export default function Dashboard() {
     const pagado = monthTxPrimary.filter((t) => t.kind === 'gasto').reduce((s, t) => s + t.amount, 0)
     const ingresos = monthTxPrimary.filter((t) => t.kind === 'ingreso').reduce((s, t) => s + t.amount, 0)
     const prevGasto = prevMonthTxPrimary.filter((t) => t.kind === 'gasto').reduce((s, t) => s + t.amount, 0)
+    const prevIngreso = prevMonthTxPrimary.filter((t) => t.kind === 'ingreso').reduce((s, t) => s + t.amount, 0)
     const change = prevGasto > 0 ? ((pagado - prevGasto) / prevGasto) * 100 : null
 
     const key = monthKey(thisMonth)
@@ -137,6 +155,24 @@ export default function Dashboard() {
 
     const teQueda = ingresos - pagado - pendiente
 
+    const daysSoFar = now.getDate()
+    const promedioDiario = daysSoFar > 0 ? pagado / daysSoFar : 0
+
+    const byCategory = new Map<string, number>()
+    for (const t of monthTxPrimary) {
+      if (t.kind !== 'gasto') continue
+      const catKey = t.category?.name ?? 'Sin categoría'
+      byCategory.set(catKey, (byCategory.get(catKey) ?? 0) + t.amount)
+    }
+    let categoriaTop: string | null = null
+    let categoriaTopMonto = 0
+    for (const [catName, amt] of byCategory) {
+      if (amt > categoriaTopMonto) {
+        categoriaTop = catName
+        categoriaTopMonto = amt
+      }
+    }
+
     const otherCurrencies = Array.from(
       new Set(
         transactions
@@ -145,7 +181,20 @@ export default function Dashboard() {
       )
     ).filter(Boolean) as string[]
 
-    return { pagado, ingresos, pendiente, teQueda, change, monthTx: monthTxPrimary, otherCurrencies }
+    return {
+      pagado,
+      ingresos,
+      pendiente,
+      teQueda,
+      change,
+      promedioDiario,
+      categoriaTop,
+      categoriaTopMonto,
+      prevGasto,
+      prevIngreso,
+      monthTx: monthTxPrimary,
+      otherCurrencies,
+    }
   }, [transactions, cards, cardPurchases, cardPayments, primaryCurrency, thisMonth])
 
   if (loading) {
@@ -169,7 +218,7 @@ export default function Dashboard() {
             {new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })}
           </p>
           <p className="tabular mt-1 font-mono text-4xl font-bold text-white sm:text-5xl">
-            {fmt(home.teQueda, primaryCurrency)}
+            <Amount value={home.teQueda} currency={primaryCurrency} />
           </p>
           <p className="mt-1 text-sm text-white/40">te queda este mes</p>
 
@@ -179,7 +228,7 @@ export default function Dashboard() {
                 <ArrowDownRight className="h-3.5 w-3.5" /> Pagado
               </p>
               <p className="tabular mt-1 font-mono text-base font-bold text-white sm:text-lg">
-                {fmt(home.pagado, primaryCurrency)}
+                <Amount value={home.pagado} currency={primaryCurrency} />
               </p>
               {home.change !== null && (
                 <p
@@ -201,7 +250,7 @@ export default function Dashboard() {
                 <ArrowUpRight className="h-3.5 w-3.5" /> Ingresos
               </p>
               <p className="tabular mt-1 font-mono text-base font-bold text-white sm:text-lg">
-                {fmt(home.ingresos, primaryCurrency)}
+                <Amount value={home.ingresos} currency={primaryCurrency} />
               </p>
             </div>
             <div className="rounded-2xl bg-bg/40 p-4">
@@ -209,7 +258,22 @@ export default function Dashboard() {
                 <Wallet className="h-3.5 w-3.5" /> Por pagar
               </p>
               <p className="tabular mt-1 font-mono text-base font-bold text-white sm:text-lg">
-                {fmt(home.pendiente, primaryCurrency)}
+                <Amount value={home.pendiente} currency={primaryCurrency} />
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div className="rounded-2xl bg-bg/40 p-4">
+              <p className="text-[11px] text-white/40">Promedio diario</p>
+              <p className="tabular mt-1 font-mono text-sm font-bold text-white">
+                <Amount value={home.promedioDiario} currency={primaryCurrency} />
+              </p>
+            </div>
+            <div className="rounded-2xl bg-bg/40 p-4">
+              <p className="text-[11px] text-white/40">Categoría top</p>
+              <p className="mt-1 truncate text-sm font-bold text-white">
+                {home.categoriaTop ?? '—'}
               </p>
             </div>
           </div>
@@ -239,6 +303,13 @@ export default function Dashboard() {
               onCreated={loadAll}
             />
             <CategoryChart transactions={home.monthTx} currency={primaryCurrency} />
+            <MonthCompareChart
+              currentGasto={home.pagado}
+              previousGasto={home.prevGasto}
+              currentIngreso={home.ingresos}
+              previousIngreso={home.prevIngreso}
+              currency={primaryCurrency}
+            />
           </div>
           <TransactionList
             transactions={transactions}
