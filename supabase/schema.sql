@@ -531,6 +531,19 @@ create policy "savings_contributions_delete_own" on savings_contributions
   for delete using (auth.uid() = user_id);
 
 -- ============================================================================
+-- MIGRACIÓN 5: consumos de tarjeta en dólares --------------------------
+alter table card_purchases add column if not exists currency text not null default 'ARS';
+alter table card_purchases
+  drop constraint if exists card_purchases_currency_check;
+alter table card_purchases
+  add constraint card_purchases_currency_check check (currency in ('ARS', 'USD'));
+
+alter table card_purchases add column if not exists pay_plan text not null default 'pesos';
+alter table card_purchases
+  drop constraint if exists card_purchases_pay_plan_check;
+alter table card_purchases
+  add constraint card_purchases_pay_plan_check check (pay_plan in ('pesos', 'usd'));
+
 -- MIGRACIÓN 4: medio de pago cripto ---------------------------------------
 alter table transactions
   drop constraint if exists transactions_payment_method_check;

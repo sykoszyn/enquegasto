@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import type { Card, Category } from '../types'
+import UsdCardTip from './UsdCardTip'
 
 interface Props {
   cards: Card[]
@@ -15,6 +16,8 @@ export default function CardPurchaseForm({ cards, categories, onCreated }: Props
   const [totalAmount, setTotalAmount] = useState('')
   const [installments, setInstallments] = useState('1')
   const [categoryId, setCategoryId] = useState('')
+  const [currency, setCurrency] = useState<'ARS' | 'USD'>('ARS')
+  const [payPlan, setPayPlan] = useState<'pesos' | 'usd'>('pesos')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -45,6 +48,8 @@ export default function CardPurchaseForm({ cards, categories, onCreated }: Props
       description: description || 'Compra',
       total_amount: parsedAmount,
       installments: parsedInstallments,
+      currency,
+      pay_plan: currency === 'USD' ? payPlan : 'pesos',
       first_installment_date: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
     })
     setSaving(false)
@@ -55,6 +60,8 @@ export default function CardPurchaseForm({ cards, categories, onCreated }: Props
     setDescription('')
     setTotalAmount('')
     setInstallments('1')
+    setCurrency('ARS')
+    setPayPlan('pesos')
     onCreated()
   }
 
@@ -84,7 +91,7 @@ export default function CardPurchaseForm({ cards, categories, onCreated }: Props
         <input
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Descripción (ej. Zapatillas)"
+          placeholder="Descripción (ej. Zapatillas, Netflix)"
           className="w-full rounded-xl border border-bg-border bg-bg px-3 py-2.5 text-sm text-white outline-none focus:border-brand"
         />
         <div className="grid grid-cols-2 gap-3">
@@ -108,6 +115,58 @@ export default function CardPurchaseForm({ cards, categories, onCreated }: Props
             />
           </div>
         </div>
+
+        <div>
+          <label className="text-xs text-white/40">Moneda del consumo</label>
+          <div className="mt-1 flex gap-2 rounded-xl bg-bg p-1">
+            <button
+              type="button"
+              onClick={() => setCurrency('ARS')}
+              className={`flex-1 rounded-lg py-1.5 text-xs font-bold transition ${
+                currency === 'ARS' ? 'bg-bg-raised text-white' : 'text-white/40'
+              }`}
+            >
+              Pesos
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrency('USD')}
+              className={`flex-1 rounded-lg py-1.5 text-xs font-bold transition ${
+                currency === 'USD' ? 'bg-ambar text-bg' : 'text-white/40'
+              }`}
+            >
+              Dólares (USD)
+            </button>
+          </div>
+        </div>
+
+        {currency === 'USD' && (
+          <div className="space-y-2 rounded-xl border border-ambar/20 bg-ambar/5 p-3">
+            <label className="text-xs text-white/50">¿Cómo pensás pagarlo?</label>
+            <div className="flex gap-2 rounded-xl bg-bg p-1">
+              <button
+                type="button"
+                onClick={() => setPayPlan('pesos')}
+                className={`flex-1 rounded-lg py-1.5 text-xs font-bold transition ${
+                  payPlan === 'pesos' ? 'bg-bg-raised text-white' : 'text-white/40'
+                }`}
+              >
+                En pesos
+              </button>
+              <button
+                type="button"
+                onClick={() => setPayPlan('usd')}
+                className={`flex-1 rounded-lg py-1.5 text-xs font-bold transition ${
+                  payPlan === 'usd' ? 'bg-brand text-bg' : 'text-white/40'
+                }`}
+              >
+                En dólares
+              </button>
+            </div>
+            <UsdCardTip compact />
+          </div>
+        )}
+
         <select
           value={categoryId}
           onChange={(e) => setCategoryId(e.target.value)}
@@ -123,6 +182,7 @@ export default function CardPurchaseForm({ cards, categories, onCreated }: Props
         {totalAmount && Number(installments) > 1 && (
           <p className="text-[11px] text-white/40">
             ≈{' '}
+            {currency === 'USD' ? 'US$' : '$'}
             {(
               Number(totalAmount.replace(/\./g, '').replace(',', '.')) / Number(installments)
             ).toLocaleString('es-AR', { maximumFractionDigits: 0 })}{' '}

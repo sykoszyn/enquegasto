@@ -80,6 +80,8 @@ export interface CardPurchase {
   total_amount: number
   installments: number
   first_installment_date: string
+  currency: 'ARS' | 'USD'
+  pay_plan: 'pesos' | 'usd'
   created_at: string
   category?: Category | null
 }

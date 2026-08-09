@@ -34,6 +34,22 @@ export function cardDueForMonth(purchases: CardPurchase[], month: Date): number 
     .reduce((sum, p) => sum + installmentAmount(p), 0)
 }
 
+/** Igual que cardDueForMonth pero separado por moneda (ARS / USD). */
+export function cardDueByCurrency(
+  purchases: CardPurchase[],
+  month: Date
+): { ARS: number; USD: number } {
+  const active = purchases.filter((p) => isPurchaseActiveInMonth(p, month))
+  return {
+    ARS: active
+      .filter((p) => (p.currency ?? 'ARS') === 'ARS')
+      .reduce((sum, p) => sum + installmentAmount(p), 0),
+    USD: active
+      .filter((p) => p.currency === 'USD')
+      .reduce((sum, p) => sum + installmentAmount(p), 0),
+  }
+}
+
 export function monthKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
 }

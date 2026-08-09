@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ArrowDownRight, ArrowUpRight, Download, TrendingDown, TrendingUp, Wallet } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import type { Account, Card, CardPayment, CardPurchase, Category, Transaction } from '../types'
@@ -12,7 +13,7 @@ import AiChat from '../components/AiChat'
 import Amount from '../components/Amount'
 import { useDisplayCurrency } from '../context/DisplayCurrencyContext'
 import { downloadTransactionsCsv } from '../lib/csv'
-import { cardDueForMonth, monthKey, monthStart } from '../lib/cardMath'
+import { cardDueByCurrency, monthKey, monthStart } from '../lib/cardMath'
 import { getCached, setCached } from '../lib/cache'
 
 interface DashboardCache {
@@ -173,12 +174,17 @@ export default function Dashboard() {
 
     const key = monthKey(thisMonth)
     const cardsInPrimaryCurrency = cards.filter((c) => c.currency === primaryCurrency)
-    const pendiente = cardsInPrimaryCurrency
-      .filter((c) => !cardPayments.some((p) => p.card_id === c.id && p.month.slice(0, 10) === key))
-      .reduce((sum, c) => {
-        const purchasesForCard = cardPurchases.filter((p) => p.card_id === c.id)
-        return sum + cardDueForMonth(purchasesForCard, thisMonth)
-      }, 0)
+    const unpaidCards = cardsInPrimaryCurrency.filter(
+      (c) => !cardPayments.some((p) => p.card_id === c.id && p.month.slice(0, 10) === key)
+    )
+    const pendiente = unpaidCards.reduce((sum, c) => {
+      const purchasesForCard = cardPurchases.filter((p) => p.card_id === c.id)
+      return sum + cardDueByCurrency(purchasesForCard, thisMonth).ARS
+    }, 0)
+    const pendienteUsd = unpaidCards.reduce((sum, c) => {
+      const purchasesForCard = cardPurchases.filter((p) => p.card_id === c.id)
+      return sum + cardDueByCurrency(purchasesForCard, thisMonth).USD
+    }, 0)
 
     const teQueda = ingresos - pagado - pendiente
 
@@ -212,6 +218,7 @@ export default function Dashboard() {
       pagado,
       ingresos,
       pendiente,
+      pendienteUsd,
       teQueda,
       change,
       promedioDiario,
@@ -325,6 +332,15 @@ export default function Dashboard() {
               También tenés movimientos en {home.otherCurrencies.join(', ')} — mirá el
               detalle más abajo.
             </p>
+          )}
+          {home.pendienteUsd > 0 && (
+            <Link
+              to="/app/tarjetas"
+              className="mt-4 block rounded-xl bg-ambar/10 px-4 py-3 text-xs text-ambar transition hover:bg-ambar/15"
+            >
+              💡 Además tenés US$ {home.pendienteUsd.toLocaleString('es-AR')} en consumos
+              en dólares este mes — mirá el tip de ahorro en Tarjetas.
+            </Link>
           )}
         </div>
 

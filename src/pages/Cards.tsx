@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabaseClient'
 import type { Card, CardPayment, CardPurchase, Category, Household } from '../types'
 import AppShell from '../components/AppShell'
 import {
-  cardDueForMonth,
+  cardDueByCurrency,
   installmentAmount,
   installmentNumberInMonth,
   isPurchaseActiveInMonth,
@@ -14,6 +14,7 @@ import {
 } from '../lib/cardMath'
 import CardPurchaseForm from '../components/CardPurchaseForm'
 import EmptyState from '../components/EmptyState'
+import UsdCardTip from '../components/UsdCardTip'
 
 const fmt = (n: number, currency: string) =>
   new Intl.NumberFormat('es-AR', {
@@ -171,6 +172,12 @@ export default function Cards() {
     load()
   }
 
+  const togglePayPlan = async (purchase: CardPurchase) => {
+    const next = purchase.pay_plan === 'usd' ? 'pesos' : 'usd'
+    await supabase.from('card_purchases').update({ pay_plan: next }).eq('id', purchase.id)
+    load()
+  }
+
   const removeCard = async (card: Card) => {
     const purchaseCount = purchases.filter((p) => p.card_id === card.id).length
     const msg =
@@ -189,15 +196,17 @@ export default function Cards() {
   const summary = useMemo(() => {
     return cards.map((card) => {
       const cardPurchases = purchases.filter((p) => p.card_id === card.id)
-      const due = cardDueForMonth(cardPurchases, thisMonth)
+      const due = cardDueByCurrency(cardPurchases, thisMonth)
       const key = monthKey(thisMonth)
       const paid = payments.some((p) => p.card_id === card.id && p.month.slice(0, 10) === key)
       const activePurchases = cardPurchases.filter((p) => isPurchaseActiveInMonth(p, thisMonth))
-      return { card, due, paid, activePurchases }
+      const hasUsd = activePurchases.some((p) => p.currency === 'USD')
+      return { card, due, paid, activePurchases, hasUsd }
     })
   }, [cards, purchases, payments, thisMonth])
 
-  const totalDue = summary.filter((s) => !s.paid).reduce((sum, s) => sum + s.due, 0)
+  const totalDueArs = summary.filter((s) => !s.paid).reduce((sum, s) => sum + s.due.ARS, 0)
+  const totalDueUsd = summary.filter((s) => !s.paid).reduce((sum, s) => sum + s.due.USD, 0)
 
   if (loading) {
     return (
@@ -221,9 +230,20 @@ export default function Cards() {
         <div className="mt-5 overflow-hidden rounded-2xl border border-bg-border bg-gradient-to-br from-bg-surface to-bg-raised p-5 shadow-card">
           <p className="text-sm text-white/50">Te queda por pagar este mes</p>
           <p className="tabular mt-1 font-mono text-3xl font-bold text-gasto">
-            {fmt(totalDue, cards[0]?.currency ?? 'ARS')}
+            {fmt(totalDueArs, 'ARS')}
           </p>
+          {totalDueUsd > 0 && (
+            <p className="tabular mt-1 font-mono text-lg font-bold text-ambar">
+              + US$ {totalDueUsd.toLocaleString('es-AR', { maximumFractionDigits: 2 })}
+            </p>
+          )}
         </div>
+
+        {totalDueUsd > 0 && (
+          <div className="mt-4">
+            <UsdCardTip />
+          </div>
+        )}
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[340px_1fr]">
           <div className="space-y-6">
@@ -239,7 +259,7 @@ export default function Cards() {
                 body="Sumá tu primera tarjeta del lado izquierdo para empezar a controlar las cuotas."
               />
             )}
-            {summary.map(({ card, due, paid, activePurchases }) => (
+            {summary.map(({ card, due, paid, activePurchases, hasUsd }) => (
               <div
                 key={card.id}
                 className="rounded-2xl border border-bg-border bg-bg-surface p-5 shadow-card"
@@ -279,28 +299,63 @@ export default function Cards() {
                   </div>
                 </div>
 
-                <p className="tabular mt-3 font-mono text-xl font-bold text-gasto">
-                  {fmt(due, card.currency)}
-                </p>
+                <div className="mt-3 flex flex-wrap items-baseline gap-x-3">
+                  {due.ARS > 0 && (
+                    <p className="tabular font-mono text-xl font-bold text-gasto">
+                      {fmt(due.ARS, 'ARS')}
+                    </p>
+                  )}
+                  {due.USD > 0 && (
+                    <p className="tabular font-mono text-base font-bold text-ambar">
+                      US$ {due.USD.toLocaleString('es-AR', { maximumFractionDigits: 2 })}
+                    </p>
+                  )}
+                  {due.ARS === 0 && due.USD === 0 && (
+                    <p className="text-sm text-white/30">Sin cuotas activas este mes</p>
+                  )}
+                </div>
+
+                {hasUsd && (
+                  <div className="mt-3">
+                    <UsdCardTip compact />
+                  </div>
+                )}
 
                 {activePurchases.length > 0 && (
-                  <ul className="mt-3 space-y-1.5 border-t border-bg-border pt-3">
+                  <ul className="mt-3 space-y-2 border-t border-bg-border pt-3">
                     {activePurchases.map((p) => {
                       const n = installmentNumberInMonth(p, thisMonth)
+                      const isUsd = p.currency === 'USD'
                       return (
-                        <li
-                          key={p.id}
-                          className="flex items-center justify-between text-xs text-white/60"
-                        >
-                          <span className="truncate">
-                            {p.description}{' '}
-                            <span className="text-white/30">
-                              ({n}/{p.installments})
+                        <li key={p.id} className="text-xs text-white/60">
+                          <div className="flex items-center justify-between">
+                            <span className="truncate">
+                              {p.description}{' '}
+                              <span className="text-white/30">
+                                ({n}/{p.installments})
+                              </span>
                             </span>
-                          </span>
-                          <span className="tabular font-mono">
-                            {fmt(installmentAmount(p), card.currency)}
-                          </span>
+                            <span
+                              className={`tabular font-mono ${isUsd ? 'text-ambar' : ''}`}
+                            >
+                              {isUsd ? 'US$ ' : '$'}
+                              {installmentAmount(p).toLocaleString('es-AR', {
+                                maximumFractionDigits: isUsd ? 2 : 0,
+                              })}
+                            </span>
+                          </div>
+                          {isUsd && (
+                            <button
+                              onClick={() => togglePayPlan(p)}
+                              className={`mt-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold transition ${
+                                p.pay_plan === 'usd'
+                                  ? 'bg-brand/15 text-brand'
+                                  : 'bg-bg-raised text-white/40 hover:text-white/60'
+                              }`}
+                            >
+                              {p.pay_plan === 'usd' ? '✓ Pagás en USD' : 'Pagás en pesos · cambiar'}
+                            </button>
+                          )}
                         </li>
                       )
                     })}
